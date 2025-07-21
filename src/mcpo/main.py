@@ -1,9 +1,9 @@
+import asyncio
 import json
-import os
 import logging
+import os
 import signal
 import socket
-import asyncio
 from contextlib import AsyncExitStack, asynccontextmanager
 from typing import Optional
 from urllib.parse import urljoin
@@ -11,11 +11,19 @@ from urllib.parse import urljoin
 import uvicorn
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.routing import Mount
+
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.sse import sse_client
 from mcp.client.stdio import stdio_client
 from mcp.client.streamable_http import streamablehttp_client
-from starlette.routing import Mount
+
+from mcpo.utils.auth import APIKeyMiddleware, get_verify_api_key
+from mcpo.utils.main import (
+    get_model_fields,
+    get_tool_handler,
+    normalize_server_type,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,10 +44,6 @@ class GracefulShutdown:
         """Track tasks for cleanup"""
         self.tasks.add(task)
         task.add_done_callback(self.tasks.discard)
-
-
-from mcpo.utils.main import get_model_fields, get_tool_handler
-from mcpo.utils.auth import get_verify_api_key, APIKeyMiddleware
 
 
 async def create_dynamic_endpoints(app: FastAPI, api_dependency=None):
@@ -104,7 +108,7 @@ async def create_dynamic_endpoints(app: FastAPI, api_dependency=None):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    server_type = getattr(app.state, "server_type", "stdio")
+    server_type = normalize_server_type(getattr(app.state, "server_type", "stdio"))
     command = getattr(app.state, "command", None)
     args = getattr(app.state, "args", [])
     args = args if isinstance(args, list) else [args]
@@ -116,9 +120,7 @@ async def lifespan(app: FastAPI):
     # Get shutdown handler from app state
     shutdown_handler = getattr(app.state, "shutdown_handler", None)
 
-    is_main_app = not command and not (
-        server_type in ["sse", "streamablehttp", "streamable_http"] and args
-    )
+    is_main_app = not command and not (server_type in ["sse", "streamable-http"] and args)
 
     if is_main_app:
         async with AsyncExitStack() as stack:
@@ -190,7 +192,7 @@ async def lifespan(app: FastAPI):
                     sse_read_timeout=connection_timeout or 900,
                     headers=headers,
                 )
-            elif server_type == "streamablehttp" or server_type == "streamable_http":
+            elif server_type == "streamable-http":
                 headers = getattr(app.state, "headers", None)
                 client_context = streamablehttp_client(url=args[0], headers=headers)
             else:
@@ -221,9 +223,7 @@ async def run(
     strict_auth = kwargs.get("strict_auth", False)
 
     # MCP Server
-    server_type = kwargs.get(
-        "server_type"
-    )  # "stdio", "sse", or "streamablehttp" ("streamable_http" is also accepted)
+    server_type = normalize_server_type(kwargs.get("server_type"))
     server_command = kwargs.get("server_command")
 
     # MCP Config
@@ -313,11 +313,11 @@ async def run(
         main_app.state.args = server_command[0]  # Expects URL as the first element
         main_app.state.api_dependency = api_dependency
         main_app.state.headers = headers
-    elif server_type == "streamablehttp" or server_type == "streamable_http":
+    elif server_type == "streamable-http":
         logger.info(
             f"Configuring for a single StreamableHTTP MCP Server with URL {server_command[0]}"
         )
-        main_app.state.server_type = "streamablehttp"
+        main_app.state.server_type = "streamable-http"
         main_app.state.args = server_command[0]  # Expects URL as the first element
         main_app.state.api_dependency = api_dependency
         main_app.state.headers = headers
@@ -364,19 +364,18 @@ async def run(
                 sub_app.state.args = server_cfg.get("args", [])
                 sub_app.state.env = {**os.environ, **server_cfg.get("env", {})}
 
-            server_config_type = server_cfg.get("type")
+            server_config_type = normalize_server_type(server_cfg.get("type"))
             if server_config_type == "sse" and server_cfg.get("url"):
                 sub_app.state.server_type = "sse"
                 sub_app.state.args = [server_cfg["url"]]
                 sub_app.state.headers = server_cfg.get("headers")
             elif (
-                server_config_type == "streamablehttp"
-                or server_config_type == "streamable_http"
+                server_config_type == "streamable-http"
             ) and server_cfg.get("url"):
                 url = server_cfg["url"]
                 if not url.endswith("/"):
                     url = f"{url}/"
-                sub_app.state.server_type = "streamablehttp"
+                sub_app.state.server_type = "streamable-http"
                 sub_app.state.args = [url]
                 sub_app.state.headers = server_cfg.get("headers")
             elif not server_config_type and server_cfg.get(
