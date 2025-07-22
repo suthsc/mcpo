@@ -64,7 +64,7 @@ docs/_build/
 .env*
 *.pem
 *.key
-
+config.json
 ########################
 #  OS junk
 ########################
