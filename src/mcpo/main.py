@@ -24,6 +24,10 @@ from mcpo.utils.main import (
     get_tool_handler,
     normalize_server_type,
 )
+from mcpo.utils.main import get_model_fields, get_tool_handler
+from mcpo.utils.auth import get_verify_api_key, APIKeyMiddleware
+from mcpo.utils.config_watcher import ConfigWatcher
+
 
 logger = logging.getLogger(__name__)
 
@@ -46,16 +50,11 @@ class GracefulShutdown:
         task.add_done_callback(self.tasks.discard)
 
 
-from mcpo.utils.main import get_model_fields, get_tool_handler
-from mcpo.utils.auth import get_verify_api_key, APIKeyMiddleware
-from mcpo.utils.config_watcher import ConfigWatcher
-
-
 def validate_server_config(server_name: str, server_cfg: Dict[str, Any]) -> None:
     """Validate individual server configuration."""
     server_type = server_cfg.get("type")
 
-    if server_type in ("sse", "streamable_http", "streamablehttp", "streamable-http"):
+    if normalize_server_type(server_type) in ("sse", "streamable-http"):
         if not server_cfg.get("url"):
             raise ValueError(f"Server '{server_name}' of type '{server_type}' requires a 'url' field")
     elif server_cfg.get("command"):
@@ -130,11 +129,7 @@ def create_sub_app(server_name: str, server_cfg: Dict[str, Any], cors_allow_orig
         sub_app.state.server_type = "sse"
         sub_app.state.args = [server_cfg["url"]]
         sub_app.state.headers = server_cfg.get("headers")
-    elif (
-        server_config_type == "streamablehttp"
-        or server_config_type == "streamable_http"
-        or server_config_type == "streamable-http"
-    ) and server_cfg.get("url"):
+    elif normalize_server_type(server_config_type) == "streamable-http" and server_cfg.get("url"):
         url = server_cfg["url"]
         if not url.endswith("/"):
             url = f"{url}/"

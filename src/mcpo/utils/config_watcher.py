@@ -47,7 +47,7 @@ class ConfigChangeHandler(FileSystemEventHandler):
 
         # Check if the destination is our config file (atomic write pattern)
         dest_path = Path(event.dest_path).resolve()
-        logger.info(f"File moved: {event.src_path} -> {dest_path}, watching: {self.config_path}")
+        logger.debug(f"File moved: {event.src_path} -> {dest_path}, watching: {self.config_path}")
 
         if (dest_path == self.config_path or
             dest_path.name == self.config_path.name and dest_path.parent == self.config_path.parent):
@@ -62,7 +62,7 @@ class ConfigChangeHandler(FileSystemEventHandler):
 
         # Check if the created file is our config file
         event_path = Path(event.src_path).resolve()
-        logger.info(f"File created: {event_path}, watching: {self.config_path}")
+        logger.debug(f"File created: {event_path}, watching: {self.config_path}")
 
         if (event_path == self.config_path or
             event_path.name == self.config_path.name and event_path.parent == self.config_path.parent):
@@ -76,7 +76,7 @@ class ConfigChangeHandler(FileSystemEventHandler):
 
         # Debounce rapid file changes
         if current_time - self._last_modification < self._debounce_delay:
-            logger.info(f"Debouncing file change (too soon): {current_time - self._last_modification:.2f}s")
+            logger.debug(f"Debouncing file change (too soon): {current_time - self._last_modification:.2f}s")
             return
 
         self._last_modification = current_time
@@ -86,7 +86,7 @@ class ConfigChangeHandler(FileSystemEventHandler):
         try:
             # Use call_soon_threadsafe to schedule the coroutine from a different thread
             future = asyncio.run_coroutine_threadsafe(self._handle_config_change(), self.loop)
-            logger.info(f"Scheduled config reload task from thread: {future}")
+            logger.debug(f"Scheduled config reload task from thread: {future}")
         except Exception as e:
             logger.error(f"Failed to schedule config reload: {e}")
 
@@ -95,7 +95,7 @@ class ConfigChangeHandler(FileSystemEventHandler):
         try:
             await asyncio.sleep(self._debounce_delay)  # Additional debounce
 
-            logger.info(f"Processing config file change: {self.config_path}")
+            logger.debug(f"Processing config file change: {self.config_path}")
 
             # Read and validate the new config
             with open(self.config_path, 'r') as f:
@@ -140,12 +140,12 @@ class ConfigWatcher:
 
         # Watch the directory containing the config file
         watch_dir = self.config_path.parent
-        logger.info(f"Watching directory: {watch_dir} for file: {self.config_path}")
+        logger.debug(f"Watching directory: {watch_dir} for file: {self.config_path}")
         self.observer.schedule(self.handler, str(watch_dir), recursive=False)
 
         self.observer.start()
         logger.info(f"Started watching config file: {self.config_path}")
-        logger.info(f"File watcher is alive: {self.observer.is_alive()}")
+        logger.debug(f"File watcher is alive: {self.observer.is_alive()}")
 
     def stop(self):
         """Stop watching the config file."""
