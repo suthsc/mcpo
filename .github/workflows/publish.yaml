@@ -2,6 +2,9 @@
 name: Publish Python Package
 
 on:
+    push:
+        branches:
+            - main
     release:
         types: [published] # Triggers workflow when a GitHub release is published
 
