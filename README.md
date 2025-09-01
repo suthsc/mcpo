@@ -70,7 +70,7 @@ Example:
 uvx mcpo --port 8000 --api-key "top-secret" -- uvx mcp-server-time --local-timezone=America/New_York
 ```
 
-That’s it. Your MCP tool is now available at http://localhost:8000 with a generated OpenAPI schema — test it live at [http://localhost:8000/docs](http://localhost:8000/docs).
+That’s it. Your MCP tool is now available at <http://localhost:8000> with a generated OpenAPI schema — test it live at [http://localhost:8000/docs](http://localhost:8000/docs).
 
 🤝 **To integrate with Open WebUI after launching the server, check our [docs](https://docs.openwebui.com/openapi-servers/open-webui/).**
 
@@ -122,8 +122,9 @@ Example config.json:
 ```
 
 Each tool will be accessible under its own unique route, e.g.:
-- http://localhost:8000/memory
-- http://localhost:8000/time
+
+- <http://localhost:8000/memory>
+- <http://localhost:8000/time>
 
 Each with a dedicated OpenAPI schema and proxy handler. Access full schema UI at: `http://localhost:8000/<tool>/docs`  (e.g. /memory/docs, /time/docs)
 
@@ -136,7 +137,8 @@ Each with a dedicated OpenAPI schema and proxy handler. Access full schema UI at
 
 To contribute or run tests locally:
 
-1.  **Set up the environment:**
+1. **Set up the environment:**
+
     ```bash
     # Clone the repository
     git clone https://github.com/open-webui/mcpo.git
@@ -146,12 +148,13 @@ To contribute or run tests locally:
     uv sync --dev
     ```
 
-2.  **Run tests:**
+2. **Run tests:**
+
     ```bash
     uv run pytest
     ```
 
-3.  **Running Locally with Active Changes:**
+3. **Running Locally with Active Changes:**
 
     To run `mcpo` with your local modifications from a specific branch (e.g., `my-feature-branch`):
 
@@ -168,8 +171,8 @@ To contribute or run tests locally:
     # Example with a test MCP server (like mcp-server-time):
     # uv run mcpo --port 8000 -- uvx mcp-server-time --local-timezone=America/New_York
     ```
-    This allows you to test your changes interactively before committing or creating a pull request. Access your locally running `mcpo` instance at `http://localhost:8000` and the auto-generated docs at `http://localhost:8000/docs`.
 
+    This allows you to test your changes interactively before committing or creating a pull request. Access your locally running `mcpo` instance at `http://localhost:8000` and the auto-generated docs at `http://localhost:8000/docs`.
 
 ## 🪪 License
 
