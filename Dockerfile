@@ -1,4 +1,4 @@
-FROM python:3.12-slim-bookworm
+FROM python:3.13-slim-trixie
 
 # Install uv (from official binary), nodejs, npm, and git
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
